@@ -31,40 +31,64 @@ const WIDE_TURN_ITERATIONS: uint8 = 8
 // Constante para controlar se os LEDs estão habilitados (para economizar energia)
 const LEDS_ENABLED: boolean = true
 
+
+// Constantes por conveniência. Usadas pois o PXT infelizmente não permite
+// desestruturar o namespace `Maqueen_V5`, devemos fazer isso para cada item e
+// função, manualmente... 😭
+const CCW = Maqueen_V5.Dir.CCW
+const CW = Maqueen_V5.Dir.CW
+const DirAll = Maqueen_V5.DirectionType.All
+const DirLeft = Maqueen_V5.DirectionType.Left
+const DirRight = Maqueen_V5.DirectionType.Right
+const M1 = Maqueen_V5.Motors.M1
+const M2 = Maqueen_V5.Motors.M2
+const MAll = Maqueen_V5.Motors.All;
+const I2CInit = Maqueen_V5.I2CInit
+const motorRun = Maqueen_V5.motorRun
+const motorStop = Maqueen_V5.motorStop
+const setRgblLed = Maqueen_V5.setRgblLed
+const Black = Maqueen_V5.CarLightColors.Black;
+const Cyan = Maqueen_V5.CarLightColors.Cyan;
+const Green = Maqueen_V5.CarLightColors.Green;
+const Purple = Maqueen_V5.CarLightColors.Purple;
+const Red = Maqueen_V5.CarLightColors.Red;
+const Yellow = Maqueen_V5.CarLightColors.Yellow;
+
+
 // Função para controlar os faróis RGB do Maqueen, verificando se estão habilitados
 function setHeadlight(direction: Maqueen_V5.DirectionType, color: Maqueen_V5.CarLightColors) {
   if (LEDS_ENABLED)
-    Maqueen_V5.setRgblLed(direction, color)
+    setRgblLed(direction, color)
 }
 
 // Método para virar 90 graus para a esquerda
 function turnLeft() {
-  maqueen.motorStop(maqueen.Motors.All)
-  setHeadlight(Maqueen_V5.DirectionType.Left, Maqueen_V5.CarLightColors.Yellow)
+  motorStop(MAll)
+  setHeadlight(DirLeft, Yellow)
 
   for (let i = 0; i < TURN_ITERATIONS; ++i) {
-    Maqueen_V5.motorRun(Maqueen_V5.Motors.M1, Maqueen_V5.Dir.CCW, TURN_SPEED)
-    Maqueen_V5.motorRun(Maqueen_V5.Motors.M2, Maqueen_V5.Dir.CW, TURN_SPEED)
+    motorRun(M1, CCW, TURN_SPEED)
+    motorRun(M2, CW, TURN_SPEED)
     basic.pause(TURN_PAUSE)
   }
 
-  setHeadlight(Maqueen_V5.DirectionType.Left, Maqueen_V5.CarLightColors.Black)
-  maqueen.motorStop(maqueen.Motors.All)
+  setHeadlight(DirLeft, Black)
+  motorStop(MAll)
 }
 
 // Método para virar 90 graus para a direita
 function turnRight() {
-  maqueen.motorStop(maqueen.Motors.All)
-  setHeadlight(Maqueen_V5.DirectionType.Right, Maqueen_V5.CarLightColors.Yellow)
+  motorStop(MAll)
+  setHeadlight(DirRight, Yellow)
 
   for (let i = 0; i < TURN_ITERATIONS; ++i) {
-    Maqueen_V5.motorRun(Maqueen_V5.Motors.M1, Maqueen_V5.Dir.CW, TURN_SPEED)
-    Maqueen_V5.motorRun(Maqueen_V5.Motors.M2, Maqueen_V5.Dir.CCW, TURN_SPEED)
+    motorRun(M1, CW, TURN_SPEED)
+    motorRun(M2, CCW, TURN_SPEED)
     basic.pause(TURN_PAUSE)
   }
 
-  setHeadlight(Maqueen_V5.DirectionType.Right, Maqueen_V5.CarLightColors.Black)
-  maqueen.motorStop(maqueen.Motors.All)
+  setHeadlight(DirRight, Black)
+  motorStop(MAll)
 }
 
 // Método para olhar para os dois lados e medir a distância da parede em cada um
@@ -89,29 +113,30 @@ function findPath() {
 
 // Método auxiliar para virar em um ângulo obtuso, caso fiquemos presos
 function turnAngled(direction: Maqueen_V5.DirectionType) {
-  if (direction === Maqueen_V5.DirectionType.Left) {
-    setHeadlight(Maqueen_V5.DirectionType.Left, Maqueen_V5.CarLightColors.Yellow)
+  if (direction === DirLeft) {
+    setHeadlight(DirLeft, Yellow)
 
     for (let i = 0; i < WIDE_TURN_ITERATIONS; ++i) {
-      maqueen.motorRun(maqueen.Motors.M1, maqueen.Dir.CCW, TURN_SPEED)
-      maqueen.motorRun(maqueen.Motors.M2, maqueen.Dir.CW, TURN_SPEED)
+      motorRun(maqueen.Motors.M1, maqueen.Dir.CCW, TURN_SPEED)
+      motorRun(maqueen.Motors.M2, maqueen.Dir.CW, TURN_SPEED)
       basic.pause(WIDE_TURN_PAUSE)
       maqueen.motorStop(maqueen.Motors.All)
     }
-  } else if (direction === Maqueen_V5.DirectionType.Right) {
-    setHeadlight(Maqueen_V5.DirectionType.Right, Maqueen_V5.CarLightColors.Yellow)
+  } else if (direction === DirRight) {
+    setHeadlight(DirRight, Yellow)
 
     for (let i = 0; i < WIDE_TURN_ITERATIONS; ++i) {
-      maqueen.motorRun(maqueen.Motors.M1, maqueen.Dir.CW, TURN_SPEED)
-      maqueen.motorRun(maqueen.Motors.M2, maqueen.Dir.CCW, TURN_SPEED)
+      motorRun(maqueen.Motors.M1, maqueen.Dir.CW, TURN_SPEED)
+      motorRun(maqueen.Motors.M2, maqueen.Dir.CCW, TURN_SPEED)
       basic.pause(WIDE_TURN_PAUSE)
       maqueen.motorStop(maqueen.Motors.All)
     }
   }
 
   maqueen.motorStop(maqueen.Motors.All)
-  setHeadlight(Maqueen_V5.DirectionType.All, Maqueen_V5.CarLightColors.Black)
+  setHeadlight(DirAll, Black)
 }
+
 
 // Contadores para lembrarmos quantas vezes viramos à direita ou à esquerda
 let left = 0
@@ -121,17 +146,18 @@ let right = 0
 let leftDistance = 0
 let rightDistance = 0
 
+
 // Funções de inicialização
 basic.showIcon(IconNames.Silly)
 let strip: neopixel.Strip | undefined
 if (LEDS_ENABLED) {
-  Maqueen_V5.I2CInit()
+  I2CInit()
   strip = neopixel.create(DigitalPin.P15, 4, NeoPixelMode.RGB)
 }
 
 // Aguarda o início do gesto de largada
 while (maqueen.Ultrasonic() >= 10) {
-  setHeadlight(Maqueen_V5.DirectionType.All, Maqueen_V5.CarLightColors.Red)
+  setHeadlight(DirAll, Red)
   if (LEDS_ENABLED && strip) {
     strip.showColor(neopixel.colors(NeoPixelColors.Indigo))
   }
@@ -140,7 +166,7 @@ while (maqueen.Ultrasonic() >= 10) {
 
 // Aguarda o fim do gesto de largada
 while (maqueen.Ultrasonic() <= 10) {
-  setHeadlight(Maqueen_V5.DirectionType.All, Maqueen_V5.CarLightColors.Cyan)
+  setHeadlight(DirAll, Cyan)
   if (LEDS_ENABLED && strip) {
     strip.showColor(neopixel.colors(NeoPixelColors.Orange))
   }
@@ -149,11 +175,12 @@ while (maqueen.Ultrasonic() <= 10) {
 
 // Seta os LEDs e a flag para indicar o início do percurso
 let init = true
-setHeadlight(Maqueen_V5.DirectionType.All, Maqueen_V5.CarLightColors.Black)
+setHeadlight(DirAll, Black)
 if (LEDS_ENABLED && strip) {
   strip.showColor(neopixel.colors(NeoPixelColors.White))
 }
 basic.showIcon(IconNames.Happy)
+
 
 // Método de segundo plano para iterar sobre os matizes na faixa de LEDs
 if (LEDS_ENABLED && strip) {
@@ -172,26 +199,27 @@ if (LEDS_ENABLED && strip) {
   })
 }
 
+
 // Loop principal do programa
 basic.forever(function() {
   if (maqueen.Ultrasonic() > 10) {
     // Se não estivermos dentro de 10 centímetros de um obstáculo, continuamos
-    setHeadlight(Maqueen_V5.DirectionType.All, Maqueen_V5.CarLightColors.Green)
-    Maqueen_V5.motorRun(Maqueen_V5.Motors.All, Maqueen_V5.Dir.CW, MOVE_SPEED)
+    setHeadlight(DirAll, Green)
+    motorRun(MAll, CW, MOVE_SPEED)
 
     // Descomente as linhas abaixo para habilitar o método auxiliar de detecção
     // de esquinas. Não deve ser necessário na maioria dos labirintos. Pelo
     // contrário, pois invalidará a contagem de direções tomadas.
 
     /* } else if (rightDistance < 10 && leftDistance < 10) {
-      setLed(Maqueen_V5.DirectionType.All, Maqueen_V5.CarLightColors.Purple)
-      turnAngled(rightDistance >= leftDistance ? Maqueen_V5.DirectionType.Left : Maqueen_V5.DirectionType.Right)
-      setLed(Maqueen_V5.DirectionType.All, Maqueen_V5.CarLightColors.Black)
+      setHeadlight(DirAll, Purple)
+      turnAngled(rightDistance >= leftDistance ? DirLeft : DirRight)
+      setHeadlight(DirAll, Black)
       basic.pause(100) */
   } else {
     // Caso contrário, paramos o robô
-    Maqueen_V5.motorStop(maqueen.Motors.All)
-    setHeadlight(Maqueen_V5.DirectionType.All, Maqueen_V5.CarLightColors.Red)
+    motorStop(maqueen.Motors.All)
+    setHeadlight(DirAll, Red)
 
     // Computamos qual dos lados perpendiculares têm a maior distância medida
     findPath()

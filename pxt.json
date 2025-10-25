@@ -10,12 +10,12 @@
         "maqueen": "github:dfrobot/pxt-maqueen#v1.7.16"
     },
     "files": [
-	"state.ts",
-        "README.md",
-        "config.ts",
         "main.blocks",
-        "main.ts",
-        "maqueen.ts"
+        "src/maqueen.ts",
+        "src/state.ts",
+        "src/config.ts",
+        "src/main.ts",
+        "README.md"
     ],
     "testFiles": [
         "test.ts"

@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: ISC
 
+// Namespace para configurações do comportamento do robô Maqueen. Define
+// constantes para velocidades de movimento, pausas de giro, iterações de
+// virada e configurações de LEDs.
 namespace Config {
   export const MOVE_SPEED = 255;
   export const TURN_SPEED = 200;

@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: ISC
 
+// Namespace para interface de controle do hardware do robô Maqueen. Fornece
+// constantes e funções para controlar motores, LEDs, movimentos de giro e
+// medições do sensor ultrassônico.
 namespace Maqueen {
 
   // Constantes por conveniência. Usadas pois o PXT infelizmente não permite

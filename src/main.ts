@@ -45,7 +45,7 @@ while (Maqueen.Ultrasonic() <= 10) {
 }
 
 // Seta os LEDs e a flag para indicar o início do percurso
-State.ready = true;
+State.running = true;
 Maqueen.setHeadlight(Maqueen.DirAll, Maqueen.Black);
 if (Config.LEDS_ENABLED && State.strip)
   State.strip.showColor(neopixel.colors(NeoPixelColors.White));
@@ -60,7 +60,7 @@ if (Config.LEDS_ENABLED && State.strip) {
   control.inBackground(() => {
     do
       basic.pause(2500) // Aguarda pelo menos 2.5 segundos após a inicialização
-    while (!(State.ready));
+    while (!(State.running));
 
     while (true) {
       for (let i = 0; i < 360; i += 5) {
@@ -77,17 +77,18 @@ basic.forever(() => {
   if (Maqueen.Ultrasonic() > 10) {
     // Se não estivermos dentro de 10 centímetros de um obstáculo, continuamos
     Maqueen.run();
+
   } else if (
     Config.OBTUSE_TURN_CONTINGENCY_ENABLED
     && State.rightDistance < 10 && State.leftDistance < 10
-    && (State.right >= 2 || State.left >= 2)
+    && (State.rightTurnCount >= 2 || State.leftTurnCount >= 2)
   ) {
     // Se estivermos presos em uma esquina, e a contingência estiver
     // habilitada, faremos uma rotação num ângulo obtuso para tentar escapar
     Maqueen.setHeadlight(Maqueen.DirAll, Maqueen.Purple);
     basic.pause(2000);
 
-    State.left = State.right = 0; // Zeramos os contadores
+    State.leftTurnCount = State.rightTurnCount = 0; // Zeramos os contadores
     Maqueen.turnAngled(State.rightDistance >= State.leftDistance ? Maqueen.DirLeft : Maqueen.DirRight);
 
     Maqueen.setHeadlight(Maqueen.DirAll, Maqueen.Black);
@@ -102,32 +103,33 @@ basic.forever(() => {
 
     // Verifica se a distância à direita é maior ou igual à distância à esquerda
     if (State.rightDistance >= State.leftDistance) {
-      if (State.right >= 2) {
+      if (State.rightTurnCount >= 2) {
         // Se já viramos à direita duas vezes, viramos à esquerda
         Maqueen.turnLeft();
-        State.right += -1;
-        State.left += 1;
+        State.rightTurnCount += -1;
+        State.leftTurnCount += 1;
         Maqueen.setHeadlight(Maqueen.DirLeft, Maqueen.Cyan);
       } else {
         // Caso contrário, executa a virada à direita
         Maqueen.turnRight();
-        State.left += -1;
-        State.right += 1;
+        State.leftTurnCount += -1;
+        State.rightTurnCount += 1;
         Maqueen.setHeadlight(Maqueen.DirRight, Maqueen.Cyan);
       }
+
     } else {
-      if (State.left >= 2) {
+      if (State.leftTurnCount >= 2) {
         // Se a distância à esquerda é maior, seguimos a lógica inversa:
         // Se já viramos à esquerda duas vezes, viramos à direita
         Maqueen.turnRight();
-        State.left += -1;
-        State.right += 1;
+        State.leftTurnCount += -1;
+        State.rightTurnCount += 1;
         Maqueen.setHeadlight(Maqueen.DirRight, Maqueen.Cyan);
       } else {
         // Caso contrário, executa a virada à esquerda
         Maqueen.turnLeft();
-        State.right += -1;
-        State.left += 1;
+        State.rightTurnCount += -1;
+        State.leftTurnCount += 1;
         Maqueen.setHeadlight(Maqueen.DirLeft, Maqueen.Cyan);
       }
     }

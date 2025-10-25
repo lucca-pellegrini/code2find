@@ -31,6 +31,9 @@ const WIDE_TURN_ITERATIONS: uint8 = 8;
 // Constante para controlar se os LEDs estão habilitados (para economizar energia)
 const LEDS_ENABLED: boolean = true;
 
+// Constante para controlar se deve tomar a medida emergencial ao ficar preso
+const OBTUSE_TURN_CONTINGENCY_ENABLED: boolean = false;
+
 
 // Constantes por conveniência. Usadas pois o PXT infelizmente não permite
 // desestruturar o namespace `Maqueen_V5`, devemos fazer isso para cada item e
@@ -216,16 +219,22 @@ basic.forever(function() {
     setHeadlight(DirAll, Green);
     motorRun(MAll, CW, MOVE_SPEED);
 
-    // Descomente as linhas abaixo para habilitar o método auxiliar de detecção
-    // de esquinas. Não deve ser necessário na maioria dos labirintos. Pelo
-    // contrário, pois invalidará a contagem de direções tomadas.
+  } else if (
+    OBTUSE_TURN_CONTINGENCY_ENABLED
+    && rightDistance < 10 && leftDistance < 10
+    && (right >= 2 || left >= 2)
+  ) {
+    // Se estivermos presos em uma esquina, e a contingência estiver
+    // habilitada, faremos uma rotação num ângulo obtuso para tentar escapar
+    setHeadlight(DirAll, Purple);
+    basic.pause(2000);
 
-    /* } else if (rightDistance < 10 && leftDistance < 10) {
-      setHeadlight(DirAll, Purple);
-      basic.pause(1000);
-      turnAngled(rightDistance >= leftDistance ? DirLeft : DirRight);
-      setHeadlight(DirAll, Black);
-      basic.pause(100) */
+    left = right = 0; // Zeramos os contadores
+    turnAngled(rightDistance >= leftDistance ? DirLeft : DirRight);
+
+    setHeadlight(DirAll, Black);
+    basic.pause(2000)
+
   } else {
     // Caso contrário, paramos o robô
     motorStop(MAll);

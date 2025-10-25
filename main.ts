@@ -250,13 +250,13 @@ basic.forever(() => {
         turnLeft();
         right += -1;
         left += 1;
-        basic.pause(100);
+        setHeadlight(DirLeft, Cyan);
       } else {
         // Caso contrário, executa a virada à direita
         turnRight();
         left += -1;
         right += 1;
-        basic.pause(100);
+        setHeadlight(DirRight, Cyan);
       }
     } else {
       if (left >= 2) {
@@ -265,14 +265,16 @@ basic.forever(() => {
         turnRight();
         left += -1;
         right += 1;
-        basic.pause(100);
+        setHeadlight(DirRight, Cyan);
       } else {
         // Caso contrário, executa a virada à esquerda
         turnLeft();
         right += -1;
         left += 1;
-        basic.pause(100);
+        setHeadlight(DirLeft, Cyan);
       }
     }
+
+    basic.pause(500);
   }
 });

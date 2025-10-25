@@ -78,6 +78,7 @@ function findPath() {
   basic.pause(100)
 }
 
+// Método auxiliar para virar em um ângulo obtuso, caso fiquemos presos
 function turnAngled(direction: String) {
   if (direction === "left") {
     Maqueen_V5.setRgblLed(Maqueen_V5.DirectionType.Left, Maqueen_V5.CarLightColors.Yellow)

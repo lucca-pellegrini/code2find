@@ -197,7 +197,7 @@ if (LEDS_ENABLED && strip) {
   let localStrip = strip;
 
   // Método de segundo plano para iterar sobre os matizes na faixa de LEDs
-  control.inBackground(function() {
+  control.inBackground(() => {
     do
       basic.pause(2500) // Aguarda pelo menos 2.5 segundos após a inicialização
     while (!(ready));
@@ -213,7 +213,7 @@ if (LEDS_ENABLED && strip) {
 
 
 // Loop principal do programa
-basic.forever(function() {
+basic.forever(() => {
   if (Ultrasonic() > 10) {
     // Se não estivermos dentro de 10 centímetros de um obstáculo, continuamos
     setHeadlight(DirAll, Green);

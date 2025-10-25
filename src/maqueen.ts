@@ -15,12 +15,14 @@ namespace Maqueen {
   export const DirRight = Maqueen_V5.DirectionType.Right;
   export const I2CInit = Maqueen_V5.I2CInit;
   export const Ultrasonic = Maqueen_V5.Ultrasonic;
-  export const Black = Maqueen_V5.CarLightColors.Black;
-  export const Cyan = Maqueen_V5.CarLightColors.Cyan;
-  export const Green = Maqueen_V5.CarLightColors.Green;
-  export const Purple = Maqueen_V5.CarLightColors.Purple;
   export const Red = Maqueen_V5.CarLightColors.Red;
+  export const Green = Maqueen_V5.CarLightColors.Green;
   export const Yellow = Maqueen_V5.CarLightColors.Yellow;
+  export const Blue = Maqueen_V5.CarLightColors.Blue;
+  export const Purple = Maqueen_V5.CarLightColors.Purple;
+  export const Cyan = Maqueen_V5.CarLightColors.Cyan;
+  export const White = Maqueen_V5.CarLightColors.White;
+  export const Black = Maqueen_V5.CarLightColors.Black;
 
   // Métodos e constantes desestruturados privados
   const CCW = Maqueen_V5.Dir.CCW;

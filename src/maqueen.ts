@@ -54,7 +54,8 @@ namespace Maqueen {
     setHeadlight(DirAll, Red);
   }
 
-  // Método para virar 90 graus para a esquerda
+  // Método para virar aproximadamente 90 graus para a esquerda,
+  // com ajuste fino opcional para precisão.
   export function turnLeft() {
     motorStop(MAll);
     setHeadlight(DirLeft, Yellow);
@@ -72,7 +73,8 @@ namespace Maqueen {
     fineTurnAdjustment((h0 + 360 - 90) % 360); // h0 - 90 mod 360
   }
 
-  // Método para virar 90 graus para a direita
+  // Método para virar aproximadamente 90 graus para a direita,
+  // com ajuste fino opcional para precisão.
   export function turnRight() {
     motorStop(MAll);
     setHeadlight(DirRight, Yellow);
@@ -90,8 +92,8 @@ namespace Maqueen {
     fineTurnAdjustment((h0 + 90) % 360); // h0 + 90 mod 360
   }
 
-  // Método interno para fazer ajustes finos, para alcançar uma orientação alvo
-  // na bússola.
+  // Método interno para fazer ajustes finos na orientação usando a bússola,
+  // visando alcançar o ângulo alvo com precisão.
   function fineTurnAdjustment(target: number) {
     basic.pause(200);
 
@@ -140,12 +142,14 @@ namespace Maqueen {
   }
 
 
+  // Calcula a menor diferença angular entre dois ângulos,
+  // retornando um valor em (-180, 180].
   function shortestDelta(from: number, to: number): int32 {
     // menor ângulo com sinal na faixa (-180, +179)
     return (((to - from + 540) % 360) as int32) - 180;
   }
 
-  // Retorna heading médio em [0,360)
+  // Calcula o heading médio da bússola, filtrando outliers para maior precisão.
   function meanCompassHeading(samples = 12, delayMs = 20, maxDeviationDeg = 30): number {
     const radians: number[] = [];
     for (let i = 0; i < samples; ++i) {
@@ -174,7 +178,7 @@ namespace Maqueen {
     }
 
     // se a filtragem removeu poucas amostras, recomputa média; senão mantém a primeira
-    if (filtered.length >= Math.max(1, Math.idiv(samples, 2)))
+    if (filtered.length >= Math.max(1, Math.floor(samples / 2)))
       meanDeg = circularMeanFromRadians(filtered);
 
     return meanDeg;

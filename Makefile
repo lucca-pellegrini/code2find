@@ -1,10 +1,18 @@
 all: deploy
 
-build: src/*.ts
+built/binary.hex: src/*.ts pxt.json tsconfig.json
 	pxt build
 
-deploy:
-	pxt deploy
+deploy: built/binary.hex | /run/media/${USER}/MICROBIT
+	cp built/binary.hex /run/media/${USER}/MICROBIT
 
-test:
+/run/media/${USER}/MICROBIT: | /dev/disk/by-label/MICROBIT
+	udisksctl mount --block-device=/dev/disk/by-label/MICROBIT
+
+clean:
+	pxt clean
+
+test: test.ts
 	pxt test
+
+.PHONY: all deploy clean test

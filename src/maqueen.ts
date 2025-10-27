@@ -69,7 +69,7 @@ namespace Maqueen {
     State.calibrated = true;
   }
 
-  // Método para olhar para os dois lados e medir a distância da parede em cada
+  // Método para olhar para os dois lados e medir a distância da parede em cada um
   export function findPath() {
     basic.pause(100);
     // basic.showArrow(2);
@@ -150,9 +150,8 @@ namespace Maqueen {
     }
   }
 
-  // Método interno para fazer ajustes finos na orientação usando a bússola,
-  // e controle proporcional com estabilidade via acelerômetro para alcançar o
-  // ângulo alvo com precisão.
+  // Método interno para fazer ajustes finos na orientação usando controle PID,
+  // bússola e acelerômetro para alcançar o ângulo alvo com precisão e estabilidade.
   // targetRel: Ângulo relativo à frente do robô (0..360)
   function fineTurnAdjustment(targetRel: number) {
     // Sem calibragem, presume que targetRel é absoluto (compatibilidade)
@@ -243,8 +242,8 @@ namespace Maqueen {
     motorStop(MAll);
   }
 
-  // Retorna o heading absoluto da "bússola" já filtrado/estável.
-  // Usa accel/rotation para descartar amostras instáveis.
+  // Retorna o heading absoluto da bússola já filtrado e estabilizado,
+  // descartando amostras instáveis usando aceleração e rotação.
   function meanCompassHeadingStable(samples = 8, delayMs = 12, maxDeviationDeg = 30): number {
     const radians: number[] = [];
     const rotSamples: number[] = [];
@@ -327,7 +326,7 @@ namespace Maqueen {
     return (((to - from + 540) % 360) as number) - 180;
   }
 
-  // Obtem heading relativo ao "frente do robô" (requer calibragem)
+  // Obtém o heading relativo à frente do robô, requer calibração prévia.
   export function robotHeading(): number {
     const abs = meanCompassHeadingStable(6, 10);
     if (!State.calibrated) return abs;

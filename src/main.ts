@@ -19,8 +19,8 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-// Inicializa matriz de LEDs com uma carinha de esforço
-basic.showIcon(IconNames.Confused);
+// Inicializa matriz de LEDs com uma carinha de esforço e toca som de saudação
+basic.showIcon(IconNames.Silly);
 Maqueen.play(soundExpression.hello);
 
 // Inicialização da faixa de LEDs, se habilitada
@@ -29,12 +29,14 @@ if (Config.LEDS_ENABLED) {
   State.strip = neopixel.create(DigitalPin.P15, 4, NeoPixelMode.RGB);
 }
 
+// Aguarda pressionamento do botão A para iniciar calibração da bússola, se ajustes finos estiverem habilitados
 if (Config.TURN_FINE_ADJUSTMENT_ENABLED) {
   input.compassHeading();
   basic.showIcon(IconNames.Confused);
   while (!input.buttonIsPressed(Button.A));
 }
 
+// Realiza calibração inicial da bússola e ajusta brilho dos LEDs para baixo
 Maqueen.calibrateHeading();
 basic.showIcon(IconNames.Confused);
 led.setBrightness(16);
@@ -53,12 +55,14 @@ while (Maqueen.Ultrasonic() <= Config.MIN_WALL_DISTANCE) {
   if (Config.LEDS_ENABLED && State.strip)
     State.strip.showColor(neopixel.colors(NeoPixelColors.Orange));
   basic.showIcon(IconNames.Silly);
+  // Aumenta gradualmente o brilho dos LEDs durante a espera
   led.setBrightness(led.brightness() + 1);
 }
 
+// Restaura brilho máximo dos LEDs após a largada
 led.setBrightness(255);
 
-// Inicializa tarefas de controle por meio dos botões
+// Inicializa tarefas de controle por meio dos botões: A para retomar, B para pausar
 input.onButtonPressed(Button.A, () => {
   basic.showIcon(IconNames.Happy);
   basic.pause(2000);
@@ -73,6 +77,7 @@ input.onButtonPressed(Button.B, () => {
   led.toggleAll();
 });
 
+// Controle adicional via toque no logo: alterna entre pausar e retomar
 input.onLogoEvent(TouchButtonEvent.Pressed, () => {
   if (!State.paused) {
     Maqueen.play(soundExpression.sad);
@@ -83,6 +88,7 @@ input.onLogoEvent(TouchButtonEvent.Pressed, () => {
   } else {
     basic.showIcon(IconNames.Happy);
     basic.pause(2000);
+    // Toca som de confirmação antes do início do percurso
     Maqueen.play(soundExpression.twinkle);
     State.paused = false;
   }
@@ -119,6 +125,7 @@ Maqueen.play(soundExpression.twinkle);
 
 // Loop principal do programa
 basic.forever(() => {
+  // Se pausado, para o robô e sai do loop
   if (State.paused) {
     Maqueen.stop()
     return;

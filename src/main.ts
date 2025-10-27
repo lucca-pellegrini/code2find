@@ -28,8 +28,14 @@ if (Config.LEDS_ENABLED) {
   State.strip = neopixel.create(DigitalPin.P15, 4, NeoPixelMode.RGB);
 }
 
+if (Config.TURN_FINE_ADJUSTMENT_ENABLED) {
+  input.compassHeading();
+  basic.showIcon(IconNames.Silly);
+  while (!input.buttonIsPressed(Button.A));
+}
+
 // Aguarda o início do gesto de largada
-while (Maqueen.Ultrasonic() >= 10) {
+while (Maqueen.Ultrasonic() >= Config.MIN_WALL_DISTANCE) {
   Maqueen.setHeadlight(Maqueen.DirAll, Maqueen.Red);
   if (Config.LEDS_ENABLED && State.strip)
     State.strip.showColor(neopixel.colors(NeoPixelColors.Indigo));
@@ -37,7 +43,7 @@ while (Maqueen.Ultrasonic() >= 10) {
 }
 
 // Aguarda o fim do gesto de largada
-while (Maqueen.Ultrasonic() <= 10) {
+while (Maqueen.Ultrasonic() <= Config.MIN_WALL_DISTANCE) {
   Maqueen.setHeadlight(Maqueen.DirAll, Maqueen.Cyan);
   if (Config.LEDS_ENABLED && State.strip)
     State.strip.showColor(neopixel.colors(NeoPixelColors.Orange));
@@ -74,13 +80,13 @@ if (Config.LEDS_ENABLED && State.strip) {
 
 // Loop principal do programa
 basic.forever(() => {
-  if (Maqueen.Ultrasonic() > 10) {
-    // Se não estivermos dentro de 10 centímetros de um obstáculo, continuamos
+  if (Maqueen.Ultrasonic() > Config.MIN_WALL_DISTANCE) {
+    // Se não estivermos dentro de Config.MIN_WALL_DISTANCE centímetros de um obstáculo, continuamos
     Maqueen.run();
 
   } else if (
     Config.OBTUSE_TURN_CONTINGENCY_ENABLED
-    && State.rightDistance < 10 && State.leftDistance < 10
+    && State.rightDistance < Config.MIN_WALL_DISTANCE && State.leftDistance < Config.MIN_WALL_DISTANCE
     && (State.rightTurnCount >= 2 || State.leftTurnCount >= 2)
   ) {
     // Se estivermos presos em uma esquina, e a contingência estiver

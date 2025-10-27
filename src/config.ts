@@ -9,11 +9,15 @@ namespace Config {
   // para funcionar.
   export const LEDS_ENABLED: boolean = true;
 
+  export const TURN_COUNTER_ENABLED: boolean = false;
+ 
   // Constante para controlar se deve tomar a medida emergencial ao ficar
   // preso. Recomenda-se deixar essa opção desabilitada, pois interfere com a
   // capacidade do robô de evitar entrar em loop.
   export const OBTUSE_TURN_CONTINGENCY_ENABLED: boolean = false;
 
+  export const MIN_WALL_DISTANCE: uint8 = 15;
+ 
   // Constantes para calibração do movimento do robô.
   export const MOVE_SPEED: uint8 = 255; // Velocidade de movimento padrão
   export const TURN_SPEED: uint8 = 200; // Velocidade para fazer curvas

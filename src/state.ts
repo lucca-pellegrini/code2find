@@ -7,6 +7,7 @@ namespace State {
   export let running: boolean = false;
   export let leftTurnCount: uint8 = 0;
   export let rightTurnCount: uint8 = 0;
+  export let forwardDistance: uint16 = 0;
   export let leftDistance: uint16 = 0;
   export let rightDistance: uint16 = 0;
   export let strip: neopixel.Strip | undefined;

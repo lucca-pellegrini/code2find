@@ -54,23 +54,70 @@ namespace Maqueen {
     setHeadlight(DirAll, Red);
   }
 
+  // Função para tocar um efeito sonoro
+  export function play(expression: SoundExpression) {
+    music.play(
+      music.builtinPlayableSoundEffect(expression),
+      music.PlaybackMode.InBackground
+    );
+  }
+
+  // Calibração inicial do robô.
+  export function calibrateHeading() {
+    basic.pause(200);
+    State.headingCalibration = meanCompassHeadingStable(12, 12); // média inicial (estabiliza)
+    State.calibrated = true;
+  }
+
+  // Método para olhar para os dois lados e medir a distância da parede em cada
+  export function findPath() {
+    basic.pause(100);
+    // basic.showArrow(2);
+    turnLeft();
+
+    State.leftDistance = Ultrasonic();
+    // basic.showNumber(State.leftDistance);
+    // basic.pause(1000);
+
+    turnRight();
+    basic.pause(100);
+    // basic.showArrow(6);
+    turnRight();
+    basic.pause(100);
+
+    State.rightDistance = Ultrasonic();
+    // basic.showNumber(State.rightDistance);
+    // basic.pause(1000);
+  }
+
   // Método para virar aproximadamente 90 graus para a esquerda,
   // com ajuste fino opcional para precisão.
   export function turnLeft() {
     motorStop(MAll);
     setHeadlight(DirLeft, Yellow);
     basic.pause(200);
-    const originalHeading: number = (Config.TURN_FINE_ADJUSTMENT_ENABLED) ? meanCompassHeading() : 0;
 
+    // Pega heading absoluto antes da manobra para calcular target
+    const originalAbsolute = meanCompassHeadingStable(8, 12);
     for (let i = 0; i < Config.TURN_ITERATIONS; ++i) {
       motorRun(M1, CCW, Config.TURN_SPEED);
       motorRun(M2, CW, Config.TURN_SPEED);
       basic.pause(Config.LEFT_TURN_PAUSE);
     }
-
     motorStop(MAll);
     setHeadlight(DirLeft, Black);
-    fineTurnAdjustment((originalHeading + 360 - 90) % 360); // heading - 90 mod 360
+
+    if (Config.TURN_FINE_ADJUSTMENT_ENABLED) {
+      // Target absoluto = original - 90
+      const targetAbs = (originalAbsolute + 360 - 90) % 360;
+      // Se calibrado, passa target relativo ao fineTurnAdjustment
+      if (State.calibrated) {
+        const targetRel = (targetAbs - State.headingCalibration + 360) % 360;
+        fineTurnAdjustment(targetRel);
+      } else {
+        fineTurnAdjustment(targetAbs);
+      }
+    }
   }
 
   // Método para virar aproximadamente 90 graus para a direita,
@@ -79,7 +126,7 @@ namespace Maqueen {
     motorStop(MAll);
     setHeadlight(DirRight, Yellow);
     basic.pause(200);
-    const originalHeading: number = (Config.TURN_FINE_ADJUSTMENT_ENABLED) ? meanCompassHeading() : -1;
+    const originalAbsolute = meanCompassHeadingStable(8, 12);
 
     for (let i = 0; i < Config.TURN_ITERATIONS; ++i) {
       motorRun(M1, CW, Config.TURN_SPEED);
@@ -89,68 +136,163 @@ namespace Maqueen {
 
     motorStop(MAll);
     setHeadlight(DirRight, Black);
-    fineTurnAdjustment((originalHeading + 90) % 360); // heading + 90 mod 360
+
+    if (Config.TURN_FINE_ADJUSTMENT_ENABLED) {
+      // Target absoluto = original + 90
+      const targetAbs = (originalAbsolute + 90) % 360;
+      // Se calibrado, passa target relativo ao fineTurnAdjustment
+      if (State.calibrated) {
+        const targetRel = (targetAbs - State.headingCalibration + 360) % 360;
+        fineTurnAdjustment(targetRel);
+      } else {
+        fineTurnAdjustment(targetAbs);
+      }
+    }
   }
 
   // Método interno para fazer ajustes finos na orientação usando a bússola,
-  // visando alcançar o ângulo alvo com precisão.
-  function fineTurnAdjustment(target: number) {
-    basic.pause(200);
+  // e controle proporcional com estabilidade via acelerômetro para alcançar o
+  // ângulo alvo com precisão.
+  // targetRel: Ângulo relativo à frente do robô (0..360)
+  function fineTurnAdjustment(targetRel: number) {
+    // Sem calibragem, presume que targetRel é absoluto (compatibilidade)
+    if (!State.calibrated)
+      targetRel = (targetRel + 360) % 360;
 
+    basic.pause(200);
     const startTime = input.runningTime();
 
-    while (Config.TURN_FINE_ADJUSTMENT_ENABLED) {
-      let heading = meanCompassHeading();
+    const Kp = 1.4;       // Ganho proporcional (ajuste)
+    const Ki = 0.01;      // Integral (NOTE: pode deixar 0 se instável)
+    const Kd = 0.12;      // Derivativo (amorte)
+    const dtTargetMs = 60;// Loop time target
+    let integral = 0;
+    let prevErr = 0;
+    let prevTime = input.runningTime();
 
-      const delta = shortestDelta(heading, target); // quanto falta, com sinal
+    const accelToleranceDuringTurn = 300; // Se aceleração grande → pular correção
+    const settleHoldMs = 80; // Espera para estabilizar antes de aceitar
 
-      if (
-        Math.abs(delta) <= Config.TURN_TOLERANCE_DEGREES
-        || Math.abs(delta) >= Config.MAX_FINE_ADJUSTMENT_ANGLE
-      ) {
-        break;
+    while (true) {
+      const now = input.runningTime();
+      const dt = Math.max(1, (now - prevTime) / 1000.0);
+      prevTime = now;
+
+      // Leitura rápida: usamos a leitura média curta para reduzir ruido
+      const absHeading = meanCompassHeadingStable(4, 8);
+
+      // Converte para relativo se calibrado
+      let headingRel = absHeading;
+      if (State.calibrated) {
+        headingRel = (absHeading - State.headingCalibration) % 360;
+        if (headingRel < 0) headingRel += 360;
       }
 
-      // timeout de segurança
+      let err = shortestDelta(headingRel, targetRel); // sinal: >0 → direita
+
+      // Condições de saída
+      if (Math.abs(err) <= Config.TURN_TOLERANCE_DEGREES) break;
+      if (Math.abs(err) >= Config.MAX_FINE_ADJUSTMENT_ANGLE) break;
       if (input.runningTime() - startTime > Config.FINE_TURN_TIMOUT_MS) {
         motorStop(MAll);
         break;
       }
 
-      // delta > 0 -> precisamos AUMENTAR o heading -> girar para a direita
-      // delta < 0 -> precisamos DIMINUIR o heading -> girar para a esquerda
-      if (delta > 0) {
-        // girar para a direita (clockwise)
-        motorRun(M1, CW, Config.FINE_TURN_SPEED);
-        motorRun(M2, CCW, Config.FINE_TURN_SPEED);
-      } else {
-        // girar para a esquerda (counter-clockwise)
-        motorRun(M1, CCW, Config.FINE_TURN_SPEED);
-        motorRun(M2, CW, Config.FINE_TURN_SPEED);
+      // Se há aceleração/artifício, espera um pouco antes de aplicar correção
+      const ax = input.acceleration(Dimension.X);
+      const ay = input.acceleration(Dimension.Y);
+      const az = input.acceleration(Dimension.Z);
+      const mag = Math.sqrt(ax * ax + ay * ay + az * az);
+      if (Math.abs(mag - 1024) > accelToleranceDuringTurn) {
+        // Se estamos sendo empurrados ou indo para frente/para trás; damos um
+        // tempo para estabilizar
+        motorStop(MAll);
+        basic.pause(30);
+        continue;
       }
 
-      basic.pause(Config.FINE_TURN_BURST_DELAY);
+      // PID
+      integral += err * dt;
+      // Anti-windup: limite integral
+      const maxI = 200;
+      if (integral > maxI) integral = maxI;
+      if (integral < -maxI) integral = -maxI;
+      const derivative = (err - prevErr) / dt;
+      prevErr = err;
+      let u = Kp * err + Ki * integral + Kd * derivative; // Comando em graus → escalado para velocidade
+
+      // Mapeia u para velocidade 0..Config.FINE_TURN_SPEED
+      // (e garante mínimo para vencer atrito)
+      let speed = Math.min(Config.FINE_TURN_SPEED, Math.abs(u));
+      // if (speed < Config.MIN_TURN_SPEED) speed = Config.MIN_TURN_SPEED; // TODO: tornar velocidade mínima configurável
+
+      // Ativa motores
+      if (err > 0) {
+        motorRun(M1, CW, speed);
+        motorRun(M2, CCW, speed);
+      } else {
+        motorRun(M1, CCW, speed);
+        motorRun(M2, CW, speed);
+      }
+
+      basic.pause(dtTargetMs);
       motorStop(MAll);
-
-      // pequena espera para o robô estabilizar e para a bússola "assentar"
-      basic.pause(Config.FINE_TURN_SETTLE_DELAY);
+      basic.pause(settleHoldMs);
     }
+
+    motorStop(MAll);
   }
 
-
-  // Calcula a menor diferença angular entre dois ângulos,
-  // retornando um valor em (-180, 180].
-  function shortestDelta(from: number, to: number): int32 {
-    // menor ângulo com sinal na faixa (-180, +179)
-    return (((to - from + 540) % 360) as int32) - 180;
-  }
-
-  // Calcula o heading médio da bússola, filtrando outliers para maior precisão.
-  function meanCompassHeading(samples = 12, delayMs = 20, maxDeviationDeg = 30): number {
+  // Retorna o heading absoluto da "bússola" já filtrado/estável.
+  // Usa accel/rotation para descartar amostras instáveis.
+  function meanCompassHeadingStable(samples = 8, delayMs = 12, maxDeviationDeg = 30): number {
     const radians: number[] = [];
-    for (let i = 0; i < samples; ++i) {
-      radians.push(input.compassHeading() * Math.PI / 180);
+    const rotSamples: number[] = [];
+    const accelTolerance = 200; // Tolerância ± em relação a ~1024 em milli-g
+    const maxRotChangeDeg = 10; // Se rotation muda muito entre amostras, é instável
+
+    let lastPitch = input.rotation(Rotation.Pitch);
+    let lastRoll = input.rotation(Rotation.Roll);
+
+    let attempts = 0;
+    while (radians.length < samples && attempts < samples * 6) {
+      attempts += 1;
+      const ax = input.acceleration(Dimension.X);
+      const ay = input.acceleration(Dimension.Y);
+      const az = input.acceleration(Dimension.Z);
+      const mag = Math.sqrt(ax * ax + ay * ay + az * az);
+
+      const pitch = input.rotation(Rotation.Pitch);
+      const roll = input.rotation(Rotation.Roll);
+
+      // Rejeitar quando houver aceleração/choque (mag devia estar perto de 1024)
+      if (Math.abs(mag - 1024) > accelTolerance) {
+        basic.pause(delayMs);
+        continue;
+      }
+
+      // Rejeitar se a orientação estiver mudando rapidamente
+      if (Math.abs(pitch - lastPitch) > maxRotChangeDeg || Math.abs(roll - lastRoll) > maxRotChangeDeg) {
+        lastPitch = pitch;
+        lastRoll = roll;
+        basic.pause(delayMs);
+        continue;
+      }
+
+      lastPitch = pitch;
+      lastRoll = roll;
+
+      // Obtém a leitura "tilt-compensated" que o runtime fornece
+      const h = input.compassHeading();
+      radians.push(h * Math.PI / 180);
+      rotSamples.push(h);
+
       basic.pause(delayMs);
+    }
+
+    if (radians.length == 0) {
+      // Fallback: leitura direta
+      return input.compassHeading();
     }
 
     function circularMeanFromRadians(arr: number[]): number {
@@ -164,7 +306,7 @@ namespace Maqueen {
     // 1ª média
     let meanDeg = circularMeanFromRadians(radians);
 
-    // calc desviacões e filtra outliers
+    // Filtrar outliers pelo desvio angular a partir da primeira média
     const filtered: number[] = [];
     for (let r of radians) {
       let deg = (r * 180 / Math.PI);
@@ -173,11 +315,25 @@ namespace Maqueen {
       if (dev <= maxDeviationDeg) filtered.push(r);
     }
 
-    // se a filtragem removeu poucas amostras, recomputa média; senão mantém a primeira
     if (filtered.length >= Math.max(1, Math.floor(samples / 2)))
       meanDeg = circularMeanFromRadians(filtered);
 
     return meanDeg;
+  }
+
+  // Calcula a menor diferença angular entre dois ângulos,
+  // retornando um valor em (-180, 180].
+  function shortestDelta(from: number, to: number): number {
+    return (((to - from + 540) % 360) as number) - 180;
+  }
+
+  // Obtem heading relativo ao "frente do robô" (requer calibragem)
+  export function robotHeading(): number {
+    const abs = meanCompassHeadingStable(6, 10);
+    if (!State.calibrated) return abs;
+    let rel = (abs - State.headingCalibration) % 360;
+    if (rel < 0) rel += 360;
+    return rel;
   }
 
   // Método auxiliar para virar em um ângulo obtuso, caso fiquemos presos
@@ -204,26 +360,5 @@ namespace Maqueen {
 
     motorStop(MAll);
     setHeadlight(DirAll, Black);
-  }
-
-  // Método para olhar para os dois lados e medir a distância da parede em cada um
-  export function findPath() {
-    basic.pause(100);
-    // basic.showArrow(2);
-    turnLeft();
-
-    State.leftDistance = Ultrasonic();
-    // basic.showNumber(State.leftDistance);
-    // basic.pause(1000);
-
-    turnRight();
-    basic.pause(100);
-    // basic.showArrow(6);
-    turnRight();
-    basic.pause(100);
-
-    State.rightDistance = Ultrasonic();
-    // basic.showNumber(State.rightDistance);
-    // basic.pause(1000);
   }
 }

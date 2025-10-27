@@ -20,7 +20,8 @@
  */
 
 // Inicializa matriz de LEDs com uma carinha de esforço
-basic.showIcon(IconNames.Silly);
+basic.showIcon(IconNames.Confused);
+Maqueen.play(soundExpression.hello);
 
 // Inicialização da faixa de LEDs, se habilitada
 if (Config.LEDS_ENABLED) {
@@ -30,16 +31,20 @@ if (Config.LEDS_ENABLED) {
 
 if (Config.TURN_FINE_ADJUSTMENT_ENABLED) {
   input.compassHeading();
-  basic.showIcon(IconNames.Silly);
+  basic.showIcon(IconNames.Confused);
   while (!input.buttonIsPressed(Button.A));
 }
+
+Maqueen.calibrateHeading();
+basic.showIcon(IconNames.Confused);
+led.setBrightness(16);
 
 // Aguarda o início do gesto de largada
 while (Maqueen.Ultrasonic() >= Config.MIN_WALL_DISTANCE) {
   Maqueen.setHeadlight(Maqueen.DirAll, Maqueen.Red);
   if (Config.LEDS_ENABLED && State.strip)
     State.strip.showColor(neopixel.colors(NeoPixelColors.Indigo));
-  basic.showIcon(IconNames.Happy);
+  basic.showIcon(IconNames.Asleep);
 }
 
 // Aguarda o fim do gesto de largada
@@ -48,7 +53,40 @@ while (Maqueen.Ultrasonic() <= Config.MIN_WALL_DISTANCE) {
   if (Config.LEDS_ENABLED && State.strip)
     State.strip.showColor(neopixel.colors(NeoPixelColors.Orange));
   basic.showIcon(IconNames.Silly);
+  led.setBrightness(led.brightness() + 1);
 }
+
+led.setBrightness(255);
+
+// Inicializa tarefas de controle por meio dos botões
+input.onButtonPressed(Button.A, () => {
+  basic.showIcon(IconNames.Happy);
+  basic.pause(2000);
+  Maqueen.play(soundExpression.twinkle);
+  State.paused = false;
+});
+input.onButtonPressed(Button.B, () => {
+  Maqueen.play(soundExpression.sad);
+  basic.showIcon(IconNames.Square);
+  Maqueen.setHeadlight(Maqueen.DirAll, Maqueen.Yellow);
+  State.paused = true;
+  led.toggleAll();
+});
+
+input.onLogoEvent(TouchButtonEvent.Pressed, () => {
+  if (!State.paused) {
+    Maqueen.play(soundExpression.sad);
+    basic.showIcon(IconNames.Square);
+    Maqueen.setHeadlight(Maqueen.DirAll, Maqueen.Yellow);
+    State.paused = true;
+    led.toggleAll();
+  } else {
+    basic.showIcon(IconNames.Happy);
+    basic.pause(2000);
+    Maqueen.play(soundExpression.twinkle);
+    State.paused = false;
+  }
+});
 
 // Seta os LEDs e a flag para indicar o início do percurso
 State.running = true;
@@ -58,28 +96,34 @@ if (Config.LEDS_ENABLED && State.strip)
 basic.showIcon(IconNames.Happy);
 
 if (Config.LEDS_ENABLED && State.strip) {
-  // Armazena referência para que o TypeScript saiba que a variável está
-  // definida no método assíncrono abaixo
-  let localStrip = State.strip;
-
   // Método de segundo plano para iterar sobre os matizes na faixa de LEDs
   control.inBackground(() => {
     do
       basic.pause(2500) // Aguarda pelo menos 2.5 segundos após a inicialização
     while (!(State.running));
 
-    while (true) {
+    while (State.strip) {
       for (let i = 0; i < 360; i += 5) {
-        localStrip.showRainbow(1 + i, 360 - i);
+        if (!State.paused)
+          State.strip.showRainbow(1 + i, 360 - i);
+        else
+          State.strip.showColor(0xCCCC00);
         basic.pause(50);
       }
     }
   });
 }
 
+Maqueen.play(soundExpression.twinkle);
+
 
 // Loop principal do programa
 basic.forever(() => {
+  if (State.paused) {
+    Maqueen.stop()
+    return;
+  }
+
   if (Maqueen.Ultrasonic() > Config.MIN_WALL_DISTANCE) {
     // Se não estivermos dentro de Config.MIN_WALL_DISTANCE centímetros de um obstáculo, continuamos
     Maqueen.run();

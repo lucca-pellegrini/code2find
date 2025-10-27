@@ -5,6 +5,9 @@
 // de LEDs.
 namespace State {
   export let running: boolean = false;
+  export let paused: boolean = false;
+  export let calibrated: boolean = false;
+  export let headingCalibration: uint8 = 0;
   export let leftTurnCount: uint8 = 0;
   export let rightTurnCount: uint8 = 0;
   export let forwardDistance: uint16 = 0;

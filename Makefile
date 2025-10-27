@@ -1,6 +1,6 @@
 all: deploy
 
-build:
+build: src/*.ts
 	pxt build
 
 deploy:

@@ -30,9 +30,28 @@ namespace Config {
   // quanto erro é aceitável na bússola.
   export const TURN_TOLERANCE_DEGREES: uint8 = 5;
 
-  // Ângulo máximo para ajuste fino, para evitar correções excessivas
+  // Ângulo máximo em graus para ajuste fino, para evitar correções excessivas
   // se a bússola estiver muito desviada.
   export const MAX_FINE_ADJUSTMENT_ANGLE: uint8 = 15;
+
+  // Velocidade reduzida dos motores durante os ajustes finos de orientação,
+  // calculada como um quarto da velocidade normal para maior precisão e evitar
+  // overshoot.
+  export const FINE_TURN_SPEED: uint8 = Math.max(10, Math.floor(Config.TURN_SPEED / 4));
+
+  // Duração curta da rajada de movimento durante o ajuste fino, em
+  // milissegundos, permitindo correções incrementais sem girar demais de uma
+  // vez.
+  export const FINE_TURN_BURST_DELAY: uint16 = 25;
+
+  // Tempo de espera para estabilização do robô e da bússola após uma rajada de
+  // ajuste fino, em milissegundos, garantindo leituras precisas antes da
+  // próxima correção.
+  export const FINE_TURN_SETTLE_DELAY: uint16 = 100;
+
+  // Timeout máximo para o processo de ajuste fino, em milissegundos,
+  // evitando loops infinitos caso a bússola falhe ou haja interferências.
+  export const FINE_TURN_TIMOUT_MS: uint16 = 2000;
 
   // Constantes para calibração do movimento do robô.
   export const MOVE_SPEED: uint8 = 255; // Velocidade de movimento padrão

@@ -60,7 +60,7 @@ namespace Maqueen {
     motorStop(MAll);
     setHeadlight(DirLeft, Yellow);
     basic.pause(200);
-    const h0: number = (Config.TURN_FINE_ADJUSTMENT_ENABLED) ? meanCompassHeading() : 0;
+    const originalHeading: number = (Config.TURN_FINE_ADJUSTMENT_ENABLED) ? meanCompassHeading() : 0;
 
     for (let i = 0; i < Config.TURN_ITERATIONS; ++i) {
       motorRun(M1, CCW, Config.TURN_SPEED);
@@ -70,7 +70,7 @@ namespace Maqueen {
 
     motorStop(MAll);
     setHeadlight(DirLeft, Black);
-    fineTurnAdjustment((h0 + 360 - 90) % 360); // h0 - 90 mod 360
+    fineTurnAdjustment((originalHeading + 360 - 90) % 360); // heading - 90 mod 360
   }
 
   // Método para virar aproximadamente 90 graus para a direita,
@@ -79,7 +79,7 @@ namespace Maqueen {
     motorStop(MAll);
     setHeadlight(DirRight, Yellow);
     basic.pause(200);
-    const h0: number = (Config.TURN_FINE_ADJUSTMENT_ENABLED) ? meanCompassHeading() : -1;
+    const originalHeading: number = (Config.TURN_FINE_ADJUSTMENT_ENABLED) ? meanCompassHeading() : -1;
 
     for (let i = 0; i < Config.TURN_ITERATIONS; ++i) {
       motorRun(M1, CW, Config.TURN_SPEED);
@@ -89,7 +89,7 @@ namespace Maqueen {
 
     motorStop(MAll);
     setHeadlight(DirRight, Black);
-    fineTurnAdjustment((h0 + 90) % 360); // h0 + 90 mod 360
+    fineTurnAdjustment((originalHeading + 90) % 360); // heading + 90 mod 360
   }
 
   // Método interno para fazer ajustes finos na orientação usando a bússola,
@@ -97,16 +97,12 @@ namespace Maqueen {
   function fineTurnAdjustment(target: number) {
     basic.pause(200);
 
-    const fineSpeed: number = Math.max(10, Math.floor(Config.TURN_SPEED / 4));
-    const burstMs = 25;   // curta rajada de ajuste
-    const settleMs = 100; // espera maior para estabilizar após a rajada
-    const timeoutMs = 6000; // timeout total de segurança (ms)
     const startTime = input.runningTime();
 
     while (Config.TURN_FINE_ADJUSTMENT_ENABLED) {
-      let h1 = meanCompassHeading();
+      let heading = meanCompassHeading();
 
-      const delta = shortestDelta(h1, target); // quanto falta, com sinal
+      const delta = shortestDelta(heading, target); // quanto falta, com sinal
 
       if (
         Math.abs(delta) <= Config.TURN_TOLERANCE_DEGREES
@@ -116,7 +112,7 @@ namespace Maqueen {
       }
 
       // timeout de segurança
-      if (input.runningTime() - startTime > timeoutMs) {
+      if (input.runningTime() - startTime > Config.FINE_TURN_TIMOUT_MS) {
         motorStop(MAll);
         break;
       }
@@ -125,19 +121,19 @@ namespace Maqueen {
       // delta < 0 -> precisamos DIMINUIR o heading -> girar para a esquerda
       if (delta > 0) {
         // girar para a direita (clockwise)
-        motorRun(M1, CW, fineSpeed);
-        motorRun(M2, CCW, fineSpeed);
+        motorRun(M1, CW, Config.FINE_TURN_SPEED);
+        motorRun(M2, CCW, Config.FINE_TURN_SPEED);
       } else {
         // girar para a esquerda (counter-clockwise)
-        motorRun(M1, CCW, fineSpeed);
-        motorRun(M2, CW, fineSpeed);
+        motorRun(M1, CCW, Config.FINE_TURN_SPEED);
+        motorRun(M2, CW, Config.FINE_TURN_SPEED);
       }
 
-      basic.pause(burstMs);
+      basic.pause(Config.FINE_TURN_BURST_DELAY);
       motorStop(MAll);
 
       // pequena espera para o robô estabilizar e para a bússola "assentar"
-      basic.pause(settleMs);
+      basic.pause(Config.FINE_TURN_SETTLE_DELAY);
     }
   }
 

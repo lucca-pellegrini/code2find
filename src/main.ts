@@ -29,7 +29,8 @@ if (Config.LEDS_ENABLED) {
   State.strip = neopixel.create(DigitalPin.P15, 4, NeoPixelMode.RGB);
 }
 
-// Aguarda pressionamento do botão A para iniciar calibração da bússola, se ajustes finos estiverem habilitados
+// Aguarda pressionamento do botão A para iniciar calibração da bússola, se
+// ajustes finos estiverem habilitados
 if (Config.TURN_FINE_ADJUSTMENT_ENABLED) {
   input.compassHeading();
   basic.showIcon(IconNames.Confused);
@@ -65,31 +66,30 @@ led.setBrightness(255);
 // Inicializa tarefas de controle por meio dos botões: A para retomar, B para pausar
 input.onButtonPressed(Button.A, () => {
   basic.showIcon(IconNames.Happy);
-  basic.pause(2000);
   Maqueen.play(soundExpression.twinkle);
+  basic.pause(2000);
   State.paused = false;
 });
 input.onButtonPressed(Button.B, () => {
-  Maqueen.play(soundExpression.sad);
+  State.paused = true;
   basic.showIcon(IconNames.Square);
   Maqueen.setHeadlight(Maqueen.DirAll, Maqueen.Yellow);
-  State.paused = true;
+  Maqueen.play(soundExpression.sad);
   led.toggleAll();
 });
 
 // Controle adicional via toque no logo: alterna entre pausar e retomar
 input.onLogoEvent(TouchButtonEvent.Pressed, () => {
   if (!State.paused) {
-    Maqueen.play(soundExpression.sad);
+    State.paused = true;
     basic.showIcon(IconNames.Square);
     Maqueen.setHeadlight(Maqueen.DirAll, Maqueen.Yellow);
-    State.paused = true;
+    Maqueen.play(soundExpression.sad);
     led.toggleAll();
   } else {
     basic.showIcon(IconNames.Happy);
-    basic.pause(2000);
-    // Toca som de confirmação antes do início do percurso
     Maqueen.play(soundExpression.twinkle);
+    basic.pause(2000);
     State.paused = false;
   }
 });

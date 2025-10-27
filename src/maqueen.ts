@@ -58,30 +58,126 @@ namespace Maqueen {
   export function turnLeft() {
     motorStop(MAll);
     setHeadlight(DirLeft, Yellow);
+    basic.pause(200);
+    const h0: number = (Config.TURN_FINE_ADJUSTMENT_ENABLED) ? meanCompassHeading() : 0;
 
     for (let i = 0; i < Config.TURN_ITERATIONS; ++i) {
       motorRun(M1, CCW, Config.TURN_SPEED);
       motorRun(M2, CW, Config.TURN_SPEED);
-      basic.pause(Config.TURN_PAUSE);
+      basic.pause(Config.LEFT_TURN_PAUSE);
     }
 
-    setHeadlight(DirLeft, Black);
     motorStop(MAll);
+    setHeadlight(DirLeft, Black);
+    fineTurnAdjustment((h0 + 360 - 90) % 360); // h0 - 90 mod 360
   }
 
   // Método para virar 90 graus para a direita
   export function turnRight() {
     motorStop(MAll);
     setHeadlight(DirRight, Yellow);
+    basic.pause(200);
+    const h0: number = (Config.TURN_FINE_ADJUSTMENT_ENABLED) ? meanCompassHeading() : -1;
 
     for (let i = 0; i < Config.TURN_ITERATIONS; ++i) {
       motorRun(M1, CW, Config.TURN_SPEED);
       motorRun(M2, CCW, Config.TURN_SPEED);
-      basic.pause(Config.TURN_PAUSE);
+      basic.pause(Config.RIGHT_TURN_PAUSE);
     }
 
-    setHeadlight(DirRight, Black);
     motorStop(MAll);
+    setHeadlight(DirRight, Black);
+    fineTurnAdjustment((h0 + 90) % 360); // h0 + 90 mod 360
+  }
+
+  // Método interno para fazer ajustes finos, para alcançar uma orientação alvo
+  // na bússola.
+  function fineTurnAdjustment(target: number) {
+    basic.pause(200);
+
+    const fineSpeed: number = Math.max(10, Math.floor(Config.TURN_SPEED / 4));
+    const burstMs = 25;   // curta rajada de ajuste
+    const settleMs = 100; // espera maior para estabilizar após a rajada
+    const timeoutMs = 6000; // timeout total de segurança (ms)
+    const startTime = input.runningTime();
+
+    while (Config.TURN_FINE_ADJUSTMENT_ENABLED) {
+      let h1 = meanCompassHeading();
+
+      const delta = shortestDelta(h1, target); // quanto falta, com sinal
+
+      if (
+        Math.abs(delta) <= Config.TURN_TOLERANCE_DEGREES
+        || Math.abs(delta) >= Config.MAX_FINE_ADJUSTMENT_ANGLE
+      ) {
+        break;
+      }
+
+      // timeout de segurança
+      if (input.runningTime() - startTime > timeoutMs) {
+        motorStop(MAll);
+        break;
+      }
+
+      // delta > 0 -> precisamos AUMENTAR o heading -> girar para a direita
+      // delta < 0 -> precisamos DIMINUIR o heading -> girar para a esquerda
+      if (delta > 0) {
+        // girar para a direita (clockwise)
+        motorRun(M1, CW, fineSpeed);
+        motorRun(M2, CCW, fineSpeed);
+      } else {
+        // girar para a esquerda (counter-clockwise)
+        motorRun(M1, CCW, fineSpeed);
+        motorRun(M2, CW, fineSpeed);
+      }
+
+      basic.pause(burstMs);
+      motorStop(MAll);
+
+      // pequena espera para o robô estabilizar e para a bússola "assentar"
+      basic.pause(settleMs);
+    }
+  }
+
+
+  function shortestDelta(from: number, to: number): int32 {
+    // menor ângulo com sinal na faixa (-180, +179)
+    return (((to - from + 540) % 360) as int32) - 180;
+  }
+
+  // Retorna heading médio em [0,360)
+  function meanCompassHeading(samples = 12, delayMs = 20, maxDeviationDeg = 30): number {
+    const radians: number[] = [];
+    for (let i = 0; i < samples; ++i) {
+      radians.push(input.compassHeading() * Math.PI / 180);
+      basic.pause(delayMs);
+    }
+
+    function circularMeanFromRadians(arr: number[]): number {
+      let sx = 0, sy = 0;
+      for (let r of arr) { sx += Math.cos(r); sy += Math.sin(r); }
+      let m = Math.atan2(sy, sx) * 180 / Math.PI;
+      if (m < 0) m += 360;
+      return m;
+    }
+
+    // 1ª média
+    let meanDeg = circularMeanFromRadians(radians);
+
+    // calc desviacões e filtra outliers
+    const filtered: number[] = [];
+    for (let r of radians) {
+      let deg = (r * 180 / Math.PI);
+      if (deg < 0) deg += 360;
+      const dev = Math.abs(shortestDelta(deg, meanDeg));
+      if (dev <= maxDeviationDeg) filtered.push(r);
+    }
+
+    // se a filtragem removeu poucas amostras, recomputa média; senão mantém a primeira
+    if (filtered.length >= Math.max(1, Math.idiv(samples, 2)))
+      meanDeg = circularMeanFromRadians(filtered);
+
+    return meanDeg;
   }
 
   // Método auxiliar para virar em um ângulo obtuso, caso fiquemos presos
@@ -113,20 +209,21 @@ namespace Maqueen {
   // Método para olhar para os dois lados e medir a distância da parede em cada um
   export function findPath() {
     basic.pause(100);
+    // basic.showArrow(2);
     turnLeft();
 
     State.leftDistance = Ultrasonic();
-    basic.pause(1000);
+    // basic.showNumber(State.leftDistance);
+    // basic.pause(1000);
 
     turnRight();
     basic.pause(100);
+    // basic.showArrow(6);
     turnRight();
     basic.pause(100);
 
     State.rightDistance = Ultrasonic();
-    basic.pause(1000);
-
-    turnLeft();
-    basic.pause(100);
+    // basic.showNumber(State.rightDistance);
+    // basic.pause(1000);
   }
 }

@@ -10,22 +10,29 @@ namespace Config {
   export const LEDS_ENABLED: boolean = true;
 
   export const TURN_COUNTER_ENABLED: boolean = false;
- 
+
+  export const TURN_FINE_ADJUSTMENT_ENABLED: boolean = true;
+
   // Constante para controlar se deve tomar a medida emergencial ao ficar
   // preso. Recomenda-se deixar essa opção desabilitada, pois interfere com a
   // capacidade do robô de evitar entrar em loop.
   export const OBTUSE_TURN_CONTINGENCY_ENABLED: boolean = false;
 
   export const MIN_WALL_DISTANCE: uint8 = 15;
- 
+
+  export const TURN_TOLERANCE_DEGREES: uint8 = 5;
+
+  export const MAX_FINE_ADJUSTMENT_ANGLE: uint8 = 15;
+
   // Constantes para calibração do movimento do robô.
   export const MOVE_SPEED: uint8 = 255; // Velocidade de movimento padrão
-  export const TURN_SPEED: uint8 = 200; // Velocidade para fazer curvas
+  export const TURN_SPEED: uint8 = 200;
 
   // Quantos millissegundos esperar entre iterações durante uma curva, e
   // quantas iterações executar no total.
-  export const TURN_PAUSE: uint8 = 50;
-  export const TURN_ITERATIONS: uint8 = 3;
+  export const LEFT_TURN_PAUSE: uint8 = 51;
+  export const RIGHT_TURN_PAUSE: uint8 = 50;
+  export const TURN_ITERATIONS: uint8 = 4;
 
   // Como acima, mas referente às curvas obtusas emergenciais.
   export const WIDE_TURN_PAUSE: uint8 = 25;

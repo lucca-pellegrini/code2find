@@ -107,32 +107,40 @@ basic.forever(() => {
     // Computamos qual dos lados perpendiculares têm a maior distância medida
     Maqueen.findPath();
 
-    // Verifica se a distância à direita é maior ou igual à distância à esquerda
-    if (State.rightDistance >= State.leftDistance) {
-      if (State.rightTurnCount >= 2) {
+    State.forwardDistance = Maqueen.Ultrasonic();
+    if (State.forwardDistance > State.rightDistance && State.forwardDistance > State.leftDistance) {
+      State.leftTurnCount = State.rightTurnCount = 0; // Zeramos os contadores
+      return; // Continuamos o loop
+    } else if (State.rightDistance >= State.leftDistance) {
+      // Verifica se a distância à direita é maior ou igual à distância à esquerda
+      if (Config.TURN_COUNTER_ENABLED && State.rightTurnCount >= 2) {
         // Se já viramos à direita duas vezes, viramos à esquerda
+
+        Maqueen.turnLeft();
+        basic.pause(100);
         Maqueen.turnLeft();
         State.rightTurnCount += -1;
         State.leftTurnCount += 1;
         Maqueen.setHeadlight(Maqueen.DirLeft, Maqueen.Cyan);
       } else {
         // Caso contrário, executa a virada à direita
-        Maqueen.turnRight();
         State.leftTurnCount += -1;
         State.rightTurnCount += 1;
         Maqueen.setHeadlight(Maqueen.DirRight, Maqueen.Cyan);
       }
 
     } else {
-      if (State.leftTurnCount >= 2) {
+      if (Config.TURN_COUNTER_ENABLED && State.leftTurnCount >= 2) {
         // Se a distância à esquerda é maior, seguimos a lógica inversa:
         // Se já viramos à esquerda duas vezes, viramos à direita
-        Maqueen.turnRight();
         State.leftTurnCount += -1;
         State.rightTurnCount += 1;
         Maqueen.setHeadlight(Maqueen.DirRight, Maqueen.Cyan);
       } else {
         // Caso contrário, executa a virada à esquerda
+
+        Maqueen.turnLeft();
+        basic.pause(100);
         Maqueen.turnLeft();
         State.rightTurnCount += -1;
         State.leftTurnCount += 1;
